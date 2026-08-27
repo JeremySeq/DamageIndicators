@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/jeremyseq-damage-indicator",
+    "sources": "https://github.com/JeremySeq/DamageIndicators"
+  },
+  "license": "${mod_license}",
+  "icon": "assets/jeremyseqsdamageindicators/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.jeremyseq.fabric.DamageIndicators"
+    ],
+    "client": [
+      "com.jeremyseq.fabric.DamageIndicatorsClient"
+    ]
+  },
+  "mixins": [
+    "jeremyseqsdamageindicators.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=17",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
