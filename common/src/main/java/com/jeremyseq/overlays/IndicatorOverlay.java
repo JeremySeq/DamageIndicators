@@ -51,10 +51,11 @@ public class IndicatorOverlay {
 
             float deltaFrameTime = Minecraft.getInstance().getDeltaFrameTime();
 
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+
             // blood overlay
             if (showBlood && DamageIndicatorsConfig.INSTANCE.enableBloodOverlay) {
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
                 RenderSystem.setShader(GameRenderer::getPositionTexShader);
                 RenderSystem.setShaderTexture(0, BLOOD_OVERLAY);
 
@@ -68,6 +69,8 @@ public class IndicatorOverlay {
                 }
 
                 poseStack.blit(BLOOD_OVERLAY, 0, 0, width, height, 0, 0, width, height, width, height);
+
+                RenderSystem.setShaderColor(1, 1, 1, 1);
             }
 
             // directional indicator
@@ -126,6 +129,8 @@ public class IndicatorOverlay {
                 poseStack.pose().translate(indicatorX, indicatorY, 0);
                 poseStack.pose().mulPose(quaternion.invert());
                 poseStack.pose().translate(-indicatorX, -indicatorY, 0);
+
+                RenderSystem.setShaderColor(1, 1, 1, 1);
             } else {
                 counter = 0;
             }
