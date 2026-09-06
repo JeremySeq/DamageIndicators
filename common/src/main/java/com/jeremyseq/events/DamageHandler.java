@@ -43,37 +43,42 @@ public class DamageHandler {
             }
         }
 
-        // damage text
-        if (DamageIndicatorsConfig.INSTANCE.enableDamageText) {
-            AABB aabb = new AABB(
-                    player.getX() - 50, player.getY() - 50, player.getZ() - 50,
-                    player.getX() + 50, player.getY() + 50, player.getZ() + 50
-            );
+        AABB aabb = new AABB(
+                player.getX() - 50, player.getY() - 50, player.getZ() - 50,
+                player.getX() + 50, player.getY() + 50, player.getZ() + 50
+        );
 
-            List<Entity> nearbyEntities = player.level().getEntities(player, aabb);
-            Set<Integer> inRangeEntityIds = new HashSet<>();
+        List<Entity> nearbyEntities = player.level().getEntities(player, aabb);
+        Set<Integer> inRangeEntityIds = new HashSet<>();
 
-            for (Entity entity : nearbyEntities) {
-                if (entity instanceof LivingEntity livingEntity) {
-                    inRangeEntityIds.add(livingEntity.getId());
-                    if (lastHealthForOtherEntities.containsKey(livingEntity.getId())) {
-                        if (livingEntity.getHealth() < lastHealthForOtherEntities.get(livingEntity.getId())) {
+        for (Entity entity : nearbyEntities) {
+            if (entity instanceof LivingEntity livingEntity) {
+                inRangeEntityIds.add(livingEntity.getId());
+                if (lastHealthForOtherEntities.containsKey(livingEntity.getId())) {
+                    if (livingEntity.getHealth() < lastHealthForOtherEntities.get(livingEntity.getId())) {
+                        DamageSource source = livingEntity.getLastDamageSource();
+                        boolean playerHit = source != null && source.getEntity() != null && source.getEntity().getId() == player.getId();
+
+                        if (playerHit) {
+                            IndicatorOverlay.triggerHitmarker();
+                        }
+
+                        if (DamageIndicatorsConfig.INSTANCE.enableDamageText) {
                             if (DamageTextHandler.SELF_DAMAGE_TEXT || entity.getId() != Minecraft.getInstance().player.getId()) {
                                 double x = entity.getX();
                                 double y = entity.getY() + entity.getEyeHeight();
                                 double z = entity.getZ();
                                 float damage = lastHealthForOtherEntities.get(livingEntity.getId()) - livingEntity.getHealth();
-                                DamageSource source = livingEntity.getLastDamageSource();
 
                                 DamageTextHandler.damageTexts.add(new DamageTextHandler.DamageText(x, y, z, damage, source));
                             }
                         }
                     }
-                    lastHealthForOtherEntities.put(livingEntity.getId(), livingEntity.getHealth());
                 }
+                lastHealthForOtherEntities.put(livingEntity.getId(), livingEntity.getHealth());
             }
-
-            lastHealthForOtherEntities.keySet().removeIf(id -> !inRangeEntityIds.contains(id));
         }
+
+        lastHealthForOtherEntities.keySet().removeIf(id -> !inRangeEntityIds.contains(id));
     }
 }
