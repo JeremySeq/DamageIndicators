@@ -24,6 +24,7 @@ subprojects {
     }
 
     repositories {
+        mavenCentral()
         // Add repositories to retrieve artifacts from in here.
         // You should only use this when depending on other mods because
         // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -38,6 +39,7 @@ subprojects {
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
+        implementation 'com.electronwill.night-config:toml:3.6.0'
     }
 
     java {

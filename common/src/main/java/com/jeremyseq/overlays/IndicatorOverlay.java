@@ -83,10 +83,10 @@ public class IndicatorOverlay {
                 }
 
                 RenderSystem.setShader(GameRenderer::getPositionTexShader);
-                float r = DamageIndicatorsConfig.INSTANCE.directionalIndicatorColor[0] / 255f;
-                float g = DamageIndicatorsConfig.INSTANCE.directionalIndicatorColor[1] / 255f;
-                float b = DamageIndicatorsConfig.INSTANCE.directionalIndicatorColor[2] / 255f;
-                float a = DamageIndicatorsConfig.INSTANCE.directionalIndicatorColor[3] / 255f;
+                float r = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getRed() / 255f;
+                float g = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getGreen() / 255f;
+                float b = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getBlue() / 255f;
+                float a = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getAlpha() / 255f;
 
                 // fade out
                 if (DamageIndicatorsConfig.INSTANCE.enableFadeOut) {
