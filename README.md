@@ -12,7 +12,7 @@ A lightweight combat HUD mod for directional damage indicators, floating damage 
 - **Blood Overlay** (disabled by default): an overlay of red outlining your screen when you take damage
 
 ## Config
-There is one config file called `jeremyseqsdamageindicators.json`.
+There is one config file called `jeremyseqsdamageindicators.toml`.
 
 You can...
 - enable/disable each feature
