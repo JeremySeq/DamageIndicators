@@ -16,9 +16,6 @@ import org.joml.Quaternionf;
 import java.awt.*;
 
 public class IndicatorOverlay {
-
-    private static ResourceLocation INDICATOR_TEXTURE = null; // set after config is loaded
-
     private static final ResourceLocation BLOOD_OVERLAY = new ResourceLocation(DamageIndicators.MOD_ID,
             "textures/overlays/blood_overlay.png");
 
@@ -35,11 +32,6 @@ public class IndicatorOverlay {
     private static boolean showBlood = false;
     private static float bloodAlpha = 0f;
     private static final float BLOOD_FADE_SPEED = 0.02f;
-
-    public static void setup() {
-        INDICATOR_TEXTURE = new ResourceLocation(DamageIndicators.MOD_ID,
-                "textures/overlays/directional_indicator_" + DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture + ".png");
-    }
 
     public static void triggerOverlay(Vec3 sourcePosition) {
         damageSource = sourcePosition;
@@ -157,7 +149,11 @@ public class IndicatorOverlay {
                 poseStack.pose().translate(-indicatorX, -indicatorY, 0);
 
                 // Draw the radar image
-                poseStack.blit(INDICATOR_TEXTURE, (int) (indicatorX - textureWidth / 2f), (int) (indicatorY - textureWidth / 2f), 0, 0, textureWidth, textureWidth, textureWidth, textureWidth);
+                if (DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture) != null) {
+                    poseStack.blit(DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture), (int) (indicatorX - textureWidth / 2f), (int) (indicatorY - textureWidth / 2f), 0, 0, textureWidth, textureWidth, textureWidth, textureWidth);
+                } else {
+                    DamageIndicators.LOGGER.error("Invalid directional_indicator.texture: {}", DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture);
+                }
 
                 // Restore the original transformation matrix
                 poseStack.pose().translate(indicatorX, indicatorY, 0);

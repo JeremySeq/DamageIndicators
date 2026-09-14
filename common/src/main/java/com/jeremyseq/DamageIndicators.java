@@ -3,7 +3,6 @@ package com.jeremyseq;
 import com.jeremyseq.config.DamageIndicatorsConfig;
 import com.jeremyseq.events.ConfigReloader;
 import com.jeremyseq.events.DamageHandler;
-import com.jeremyseq.overlays.IndicatorOverlay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +14,6 @@ public final class DamageIndicators {
         DamageIndicatorsConfig.load();
         ConfigReloader.register();
         DamageHandler.register();
-        IndicatorOverlay.setup();
         // Write common init code here.
     }
 }

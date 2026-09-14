@@ -15,7 +15,7 @@ public class DamageIndicatorsConfig {
     public static DamageIndicatorsConfig INSTANCE = new DamageIndicatorsConfig();
 
     public boolean enableDirectionalIndicator = true;
-    public int directionalIndicatorTexture = 0;
+    public String directionalIndicatorTexture = "0";
     public int directionalIndicatorDistance = 0;
     public String directionalIndicatorColor = "#CE0025"; // hex RRGGBB
     public int directionalIndicatorAlpha = 255; // 0-255, kept separate from color since fade-out already modifies this
@@ -51,7 +51,7 @@ public class DamageIndicatorsConfig {
             DamageIndicatorsConfig defaults = new DamageIndicatorsConfig();
 
             INSTANCE.enableDirectionalIndicator = config.getOrElse("directional_indicator.enable", defaults.enableDirectionalIndicator);
-            INSTANCE.directionalIndicatorTexture = config.getIntOrElse("directional_indicator.texture", defaults.directionalIndicatorTexture);
+            INSTANCE.directionalIndicatorTexture = config.getOrElse("directional_indicator.texture", defaults.directionalIndicatorTexture);
             INSTANCE.directionalIndicatorDistance = config.getIntOrElse("directional_indicator.distance", defaults.directionalIndicatorDistance);
             INSTANCE.directionalIndicatorColor = config.getOrElse("directional_indicator.color", defaults.directionalIndicatorColor);
             INSTANCE.directionalIndicatorAlpha = config.getIntOrElse("directional_indicator.alpha", defaults.directionalIndicatorAlpha);
