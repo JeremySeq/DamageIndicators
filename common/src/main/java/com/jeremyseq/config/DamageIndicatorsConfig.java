@@ -68,6 +68,10 @@ public class DamageIndicatorsConfig {
     }
 
     public static void load() {
+        load(true);
+    }
+
+    private static void load(boolean rewrite) {
         if (Files.exists(CONFIG_PATH)) {
             CommentedFileConfig config = CommentedFileConfig.builder(CONFIG_PATH).preserveInsertionOrder().build();
             config.load();
@@ -103,7 +107,9 @@ public class DamageIndicatorsConfig {
 
         // Always rewrite as a fresh file, so key order always matches writeWithComments() exactly,
         // regardless of what order an old file on disk had.
-        save();
+        if (rewrite) {
+            save();
+        }
 
         try {
             lastModifiedTime = Files.getLastModifiedTime(CONFIG_PATH).toMillis();
@@ -209,7 +215,7 @@ public class DamageIndicatorsConfig {
         try {
             long currentModified = Files.getLastModifiedTime(CONFIG_PATH).toMillis();
             if (currentModified != lastModifiedTime) {
-                load();
+                load(false);
                 DamageIndicators.LOGGER.info("JeremySeq's Damage Indicators config reloaded");
             }
         } catch (IOException ignored) {}
