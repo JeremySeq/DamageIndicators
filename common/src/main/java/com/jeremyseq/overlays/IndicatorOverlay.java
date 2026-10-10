@@ -53,7 +53,7 @@ public class IndicatorOverlay {
     }
 
     public static void render(GuiGraphics poseStack, float partialTick, int width, int height) {
-        if (!Minecraft.getInstance().options.hideGui && Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
+        if (!Minecraft.getInstance().options.hideGui && !Minecraft.getInstance().options.getCameraType().isMirrored()) {
 
             int x = width / 2;
             int y = height / 2;
