@@ -26,6 +26,9 @@ public class DamageIndicatorsConfig {
     public int hitmarkerSize = 10;
     public float hitmarkerThickness = 1.75f;
     public int hitmarkerGap = 3;
+    public String hitmarkerColor = "#FFFFFF";
+    public String hitmarkerCritColor = "#FFFF00";
+    public String hitmarkerKillColor = "#FF0000";
     public boolean enableDamageText = true;
     public boolean enableHealthBars = false;
     public boolean onlyShowTargetHealthBar = true;
@@ -41,6 +44,27 @@ public class DamageIndicatorsConfig {
             DamageIndicators.LOGGER.warn("Invalid directional_indicator.color hex value, using default");
             return new Color(206, 0, 37, directionalIndicatorAlpha);
         }
+    }
+
+    private static Color parseHex(String hex, Color fallback, String keyName) {
+        try {
+            return Color.decode(hex);
+        } catch (NumberFormatException e) {
+            DamageIndicators.LOGGER.warn("Invalid {} hex value, using default", keyName);
+            return fallback;
+        }
+    }
+
+    public Color getHitmarkerColor() {
+        return parseHex(hitmarkerColor, Color.WHITE, "hitmarker.color");
+    }
+
+    public Color getHitmarkerCritColor() {
+        return parseHex(hitmarkerCritColor, Color.YELLOW, "hitmarker.crit_color");
+    }
+
+    public Color getHitmarkerKillColor() {
+        return parseHex(hitmarkerKillColor, Color.RED, "hitmarker.kill_color");
     }
 
     public static void load() {
@@ -63,6 +87,9 @@ public class DamageIndicatorsConfig {
             INSTANCE.hitmarkerSize = config.getIntOrElse("hitmarker.size", defaults.hitmarkerSize);
             INSTANCE.hitmarkerThickness = config.<Number>getOrElse("hitmarker.thickness", defaults.hitmarkerThickness).floatValue();
             INSTANCE.hitmarkerGap = config.getIntOrElse("hitmarker.gap", defaults.hitmarkerGap);
+            INSTANCE.hitmarkerColor = config.getOrElse("hitmarker.color", defaults.hitmarkerColor);
+            INSTANCE.hitmarkerCritColor = config.getOrElse("hitmarker.crit_color", defaults.hitmarkerCritColor);
+            INSTANCE.hitmarkerKillColor = config.getOrElse("hitmarker.kill_color", defaults.hitmarkerKillColor);
 
             INSTANCE.enableDamageText = config.getOrElse("damage_text.enable", defaults.enableDamageText);
 
@@ -140,6 +167,15 @@ public class DamageIndicatorsConfig {
 
         config.set("hitmarker.gap", INSTANCE.hitmarkerGap);
         config.setComment("hitmarker.gap", " gap of the hitmarker lines");
+
+        config.set("hitmarker.color", INSTANCE.hitmarkerColor);
+        config.setComment("hitmarker.color", " hex color of the hit marker for a normal hit, e.g. #FFFFFF");
+
+        config.set("hitmarker.crit_color", INSTANCE.hitmarkerCritColor);
+        config.setComment("hitmarker.crit_color", " hex color of the hit marker for a critical hit, e.g. #FFFF00");
+
+        config.set("hitmarker.kill_color", INSTANCE.hitmarkerKillColor);
+        config.setComment("hitmarker.kill_color", " hex color of the hit marker when the hit kills the entity, e.g. #FF0000");
 
         // damage text
 

@@ -1,5 +1,6 @@
 package com.jeremyseq.events;
 
+import com.jeremyseq.CritTracker;
 import com.jeremyseq.config.DamageIndicatorsConfig;
 import com.jeremyseq.damage_text.DamageTextHandler;
 import com.jeremyseq.overlays.IndicatorOverlay;
@@ -60,7 +61,9 @@ public class DamageHandler {
                         boolean playerHit = source != null && source.getEntity() != null && source.getEntity().getId() == player.getId();
 
                         if (playerHit) {
-                            IndicatorOverlay.triggerHitmarker();
+                            boolean wasKill = !livingEntity.isAlive();
+                            boolean wasCrit = CritTracker.lastAttackWasCrit;
+                            IndicatorOverlay.triggerHitmarker(wasKill, wasCrit);
                         }
 
                         if (DamageIndicatorsConfig.INSTANCE.enableDamageText) {

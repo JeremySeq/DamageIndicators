@@ -27,6 +27,8 @@ public class IndicatorOverlay {
     // Hit marker state
     private static boolean showHitmarker = false;
     private static float hitmarkerCounter = 0f;
+    private static boolean wasKill = false;
+    private static boolean wasCrit = false;
 
     // Blood overlay state
     private static boolean showBlood = false;
@@ -43,9 +45,11 @@ public class IndicatorOverlay {
         bloodAlpha = 1f; // Fully opaque
     }
 
-    public static void triggerHitmarker() {
+    public static void triggerHitmarker(boolean wasKill, boolean wasCrit) {
         showHitmarker = true;
         hitmarkerCounter = 0f;
+        IndicatorOverlay.wasKill = wasKill;
+        IndicatorOverlay.wasCrit = wasCrit;
     }
 
     public static void render(GuiGraphics poseStack, float partialTick, int width, int height) {
@@ -66,14 +70,26 @@ public class IndicatorOverlay {
                     showHitmarker = false;
                 } else {
                     if (DamageIndicatorsConfig.INSTANCE.enableHitmarker) {
-                        float alpha = 1f - (hitmarkerCounter / DamageIndicatorsConfig.INSTANCE.hitmarkerDuration);
+                        float progress = hitmarkerCounter / DamageIndicatorsConfig.INSTANCE.hitmarkerDuration;
+                        float alpha = 1f - (progress * progress); // quadratic ease out
                         int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255f)));
-                        poseStack.flush(); // just in case ig
+
+                        Color baseColor;
+                        if (wasKill) {
+                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerKillColor();
+                        } else if (wasCrit) {
+                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerCritColor();
+                        } else {
+                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerColor();
+                        }
+                        Color drawColor = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
+
+                        poseStack.flush();
                         drawX(poseStack, x, y,
                                 DamageIndicatorsConfig.INSTANCE.hitmarkerSize,
                                 DamageIndicatorsConfig.INSTANCE.hitmarkerThickness,
                                 DamageIndicatorsConfig.INSTANCE.hitmarkerGap,
-                                new Color(255, 255, 255, alphaInt)
+                                drawColor
                         );
                         poseStack.flush();
                     }
