@@ -24,20 +24,20 @@ public class FabricClientEvents {
     public static void register() {
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             Minecraft mc = Minecraft.getInstance();
-            DamageTextRenderer.render(context.matrixStack(), mc.renderBuffers().bufferSource());
-            HealthBarRenderer.render(context.matrixStack());
+            DamageTextRenderer.render(mc.renderBuffers().bufferSource(), context.camera());
+            HealthBarRenderer.render(context.matrixStack(), context.camera());
         });
 
         HudRenderCallback.EVENT.register((guiGraphics, tickDelta) -> {
             Minecraft mc = Minecraft.getInstance();
-            IndicatorOverlay.render(guiGraphics, mc.getDeltaFrameTime(), mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+            IndicatorOverlay.render(guiGraphics, Minecraft.getInstance().getTimer().getGameTimeDeltaTicks(), mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
         });
 
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES)
                 .registerReloadListener(new IdentifiableResourceReloadListener() {
                     @Override
                     public ResourceLocation getFabricId() {
-                        return new ResourceLocation(DamageIndicators.MOD_ID, "directional_indicator_images");
+                        return ResourceLocation.fromNamespaceAndPath(DamageIndicators.MOD_ID, "directional_indicator_images");
                     }
 
                     private final SimplePreparableReloadListener<Void> listener =

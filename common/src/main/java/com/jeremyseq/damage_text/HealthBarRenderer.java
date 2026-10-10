@@ -3,6 +3,8 @@ package com.jeremyseq.damage_text;
 import com.jeremyseq.config.DamageIndicatorsConfig;
 import com.jeremyseq.events.DamageHandler;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -18,7 +20,7 @@ import java.awt.*;
 
 public class HealthBarRenderer {
 
-    public static void render(PoseStack poseStack) {
+    public static void render(PoseStack poseStack, Camera camera) {
         if (!DamageIndicatorsConfig.INSTANCE.enableHealthBars) {
             return;
         }
@@ -32,11 +34,11 @@ public class HealthBarRenderer {
         if (DamageIndicatorsConfig.INSTANCE.onlyShowTargetHealthBar) {
             if (mc.hitResult instanceof EntityHitResult entityHitResult) {
                 int id = entityHitResult.getEntity().getId();
-                renderHealthBar(poseStack, id, bufferSource);
+                renderHealthBar(poseStack, id, bufferSource, camera);
             }
         } else {
             for (int entityId : DamageHandler.lastHealthForOtherEntities.keySet()) {
-                renderHealthBar(poseStack, entityId, bufferSource);
+                renderHealthBar(poseStack, entityId, bufferSource, camera);
             }
         }
     }
@@ -51,11 +53,11 @@ public class HealthBarRenderer {
         }
     }
 
-    private static void renderHealthBar(PoseStack poseStack, int entityId, MultiBufferSource.BufferSource bufferSource) {
+    private static void renderHealthBar(PoseStack poseStack, int entityId, MultiBufferSource.BufferSource bufferSource, Camera camera) {
+        Minecraft mc = Minecraft.getInstance();
+        EntityRenderDispatcher renderManager = mc.getEntityRenderDispatcher();
+        Font fontRenderer = mc.font;
         assert Minecraft.getInstance().level != null;
-        if (!DamageHandler.lastHealthForOtherEntities.containsKey(entityId)) {
-            return;
-        }
         if (!(Minecraft.getInstance().level.getEntity(entityId) instanceof LivingEntity entity)) {
             return;
         }
@@ -64,10 +66,6 @@ public class HealthBarRenderer {
         }
 
         float y = (float) (entity.getY()+entity.getBbHeight()+.4f);
-
-        Minecraft mc = Minecraft.getInstance();
-        EntityRenderDispatcher renderManager = mc.getEntityRenderDispatcher();
-        Font fontRenderer = mc.font;
 
         assert mc.player != null;
         if (!hasLineOfSight(mc.player, mc.player.level(), (float) entity.getX(),
@@ -78,10 +76,12 @@ public class HealthBarRenderer {
         poseStack.pushPose();
 
         // Translate to the position of the damage text
-        poseStack.translate(entity.getX() - renderManager.camera.getPosition().x, y - renderManager.camera.getPosition().y, entity.getZ() - renderManager.camera.getPosition().z);
+        poseStack.translate((float) (entity.getX() - renderManager.camera.getPosition().x),
+                (float) (y - renderManager.camera.getPosition().y),
+                (float) (entity.getZ() - renderManager.camera.getPosition().z));
 
-        // Apply transformations for better readability
-        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+        poseStack.mulPose(camera.rotation());
+        poseStack.mulPose(Axis.YP.rotationDegrees(180f));
         poseStack.scale(-0.025F, -0.025F, 0.025F);
 
         Font.DisplayMode displayMode = Font.DisplayMode.SEE_THROUGH;

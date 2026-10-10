@@ -1,6 +1,7 @@
 package com.jeremyseq.mixin;
 
 import com.jeremyseq.CritTracker;
+import com.jeremyseq.DamageIndicators;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class PlayerAttackMixin {
     @Inject(method = "attack", at = @At("HEAD"))
     private void checkCrit(Entity target, CallbackInfo ci) {
+        DamageIndicators.LOGGER.info("attack inject");
         @SuppressWarnings("DataFlowIssue") Player self = (Player) (Object) this;
         float strength = self.getAttackStrengthScale(0.5F);
 

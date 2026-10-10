@@ -16,7 +16,7 @@ import org.joml.Quaternionf;
 import java.awt.*;
 
 public class IndicatorOverlay {
-    private static final ResourceLocation BLOOD_OVERLAY = new ResourceLocation(DamageIndicators.MOD_ID,
+    private static final ResourceLocation BLOOD_OVERLAY = ResourceLocation.fromNamespaceAndPath(DamageIndicators.MOD_ID,
             "textures/overlays/blood_overlay.png");
 
     public static Vec3 damageSource = null;
@@ -58,7 +58,7 @@ public class IndicatorOverlay {
             int x = width / 2;
             int y = height / 2;
 
-            float deltaFrameTime = Minecraft.getInstance().getDeltaFrameTime();
+            float deltaFrameTime = Minecraft.getInstance().getTimer().getGameTimeDeltaTicks();
 
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
@@ -231,12 +231,11 @@ public class IndicatorOverlay {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
-        BufferBuilder buffer = Tesselator.getInstance().getBuilder();
-        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        buffer.vertex(matrix, x1, y2, 0).color(r, g, b, a).endVertex();
-        buffer.vertex(matrix, x2, y2, 0).color(r, g, b, a).endVertex();
-        buffer.vertex(matrix, x2, y1, 0).color(r, g, b, a).endVertex();
-        buffer.vertex(matrix, x1, y1, 0).color(r, g, b, a).endVertex();
-        BufferUploader.drawWithShader(buffer.end());
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        buffer.addVertex(matrix, x1, y2, 0).setColor(r, g, b, a);
+        buffer.addVertex(matrix, x2, y2, 0).setColor(r, g, b, a);
+        buffer.addVertex(matrix, x2, y1, 0).setColor(r, g, b, a);
+        buffer.addVertex(matrix, x1, y1, 0).setColor(r, g, b, a);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 }

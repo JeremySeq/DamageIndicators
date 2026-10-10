@@ -1,6 +1,6 @@
 package com.jeremyseq.damage_text;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -10,6 +10,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -17,7 +18,7 @@ import java.util.List;
 
 public class DamageTextRenderer {
 
-    public static void render(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource) {
+    public static void render(MultiBufferSource.BufferSource bufferSource, Camera camera) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
             return;
@@ -30,7 +31,10 @@ public class DamageTextRenderer {
         damageTexts.removeIf(text -> currentTime - text.getTimestamp() > 1000);
 
         for (DamageTextHandler.DamageText text : damageTexts) {
-            if (text == null) continue;
+            Matrix4f matrix = new Matrix4f();
+            if (text == null) {
+                continue;
+            }
             if (!hasLineOfSight(mc.player, mc.player.level(), (float) text.getX(), (float) text.getY(), (float) text.getZ())) {
                 continue;
             }
@@ -38,31 +42,39 @@ public class DamageTextRenderer {
             long age = currentTime - text.getTimestamp();
             float progress = age / (float) text.getDuration();
 
+            // calculate fade and scale
             float alpha = 1.0f - progress;
             float scale = 1.0f + 0.5f * (1.0f - progress);
 
-            poseStack.pushPose();
-            poseStack.translate(
-                    text.getX() - renderManager.camera.getPosition().x,
-                    text.getY() - renderManager.camera.getPosition().y,
-                    text.getZ() - renderManager.camera.getPosition().z
-            );
-            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-            poseStack.scale(-0.025F * scale, -0.025F * scale, 0.025F * scale);
-            poseStack.translate(0, -progress * 25, 0);
+            // translate to the position of the damage text
+            matrix.translate((float) (text.getX() - renderManager.camera.getPosition().x),
+                    (float) (text.getY() - renderManager.camera.getPosition().y),
+                    (float) (text.getZ() - renderManager.camera.getPosition().z));
+
+
+            // rotate damage text to face the player
+            matrix.rotate(camera.rotation());
+            matrix.rotateY((float) Math.PI);
+
+            // scale stuff
+            matrix.scale(-0.025F * scale, -0.025F * scale, 0.025F * scale);
+
+            // move the text up over time
+            matrix.translate(0, -progress*25, 0);
 
             Font.DisplayMode displayMode = Font.DisplayMode.SEE_THROUGH;
             String damage = String.format("%.0f", text.getDamage());
+
+            // handle color
             int color = getDamageColor(text.getDamage(), alpha).getRGB();
+
             int textWidth = fontRenderer.width(damage);
             int textHeight = fontRenderer.lineHeight;
 
+            // render the text
             if (getDamageColor(text.getDamage(), alpha).getAlpha() > 25) {
-                fontRenderer.drawInBatch(damage, -textWidth / 2f, -textHeight / 2f, color, false,
-                        poseStack.last().pose(), bufferSource, displayMode, 0, 15728880);
+                fontRenderer.drawInBatch(damage, -textWidth/2f, -textHeight/2f, color, false, matrix, bufferSource, displayMode, 0, 15728880);
             }
-
-            poseStack.popPose();
         }
     }
 
