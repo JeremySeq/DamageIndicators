@@ -16,10 +16,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.jeremyseq.fabric.DamageIndicators"
+      "dev.jeremyseq.fabric.DamageIndicators"
     ],
     "client": [
-      "com.jeremyseq.fabric.DamageIndicatorsClient"
+      "dev.jeremyseq.fabric.DamageIndicatorsClient"
     ]
   },
   "mixins": [
