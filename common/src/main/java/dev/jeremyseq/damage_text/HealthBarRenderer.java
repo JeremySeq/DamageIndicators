@@ -1,14 +1,14 @@
 package dev.jeremyseq.damage_text;
 
-import dev.jeremyseq.config.DamageIndicatorsConfig;
-import dev.jeremyseq.events.DamageHandler;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import dev.jeremyseq.config.DamageIndicatorsConfig;
+import dev.jeremyseq.events.DamageHandler;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -16,29 +16,29 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-import java.awt.*;
+import java.util.ArrayList;
 
 public class HealthBarRenderer {
 
-    public static void render(PoseStack poseStack, Camera camera) {
+    private static final int FULL_BRIGHT = 0xF000F0;
+
+    public static void render(SubmitNodeCollector collector, Camera camera) {
         if (!DamageIndicatorsConfig.INSTANCE.enableHealthBars) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
+        if (mc.player == null || mc.level == null) {
             return;
         }
-
-        MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
 
         if (DamageIndicatorsConfig.INSTANCE.onlyShowTargetHealthBar) {
             if (mc.hitResult instanceof EntityHitResult entityHitResult) {
                 int id = entityHitResult.getEntity().getId();
-                renderHealthBar(poseStack, id, bufferSource, camera);
+                renderHealthBar(collector, id, camera);
             }
         } else {
-            for (int entityId : DamageHandler.lastHealthForOtherEntities.keySet()) {
-                renderHealthBar(poseStack, entityId, bufferSource, camera);
+            for (int entityId : new ArrayList<>(DamageHandler.lastHealthForOtherEntities.keySet())) {
+                renderHealthBar(collector, entityId, camera);
             }
         }
     }
@@ -53,53 +53,60 @@ public class HealthBarRenderer {
         }
     }
 
-    private static void renderHealthBar(PoseStack poseStack, int entityId, MultiBufferSource.BufferSource bufferSource, Camera camera) {
+    private static void renderHealthBar(SubmitNodeCollector collector, int entityId, Camera camera) {
         Minecraft mc = Minecraft.getInstance();
-        EntityRenderDispatcher renderManager = mc.getEntityRenderDispatcher();
-        Font fontRenderer = mc.font;
-        assert Minecraft.getInstance().level != null;
-        if (!(Minecraft.getInstance().level.getEntity(entityId) instanceof LivingEntity entity)) {
+        if (mc.level == null || mc.player == null) {
             return;
         }
-        if (!DamageHandler.lastHealthForOtherEntities.containsKey(entityId)) {
+        if (!(mc.level.getEntity(entityId) instanceof LivingEntity entity)) {
             return;
         }
-
-        float y = (float) (entity.getY()+entity.getBbHeight()+.4f);
-
-        assert mc.player != null;
-        if (!hasLineOfSight(mc.player, mc.player.level(), (float) entity.getX(),
-                y, (float) entity.getZ(), 20d)) {
+        Float health = DamageHandler.lastHealthForOtherEntities.get(entityId);
+        if (health == null) {
             return;
         }
 
-        poseStack.pushPose();
+        float y = (float) (entity.getY() + entity.getBbHeight() + .4f);
 
-        // Translate to the position of the damage text
-        poseStack.translate((float) (entity.getX() - renderManager.camera.getPosition().x),
-                (float) (y - renderManager.camera.getPosition().y),
-                (float) (entity.getZ() - renderManager.camera.getPosition().z));
+        if (!hasLineOfSight(mc.player, mc.player.level(), (float) entity.getX(), y, (float) entity.getZ(), 20d)) {
+            return;
+        }
 
-        poseStack.mulPose(camera.rotation());
-        poseStack.mulPose(Axis.YP.rotationDegrees(180f));
+        Font font = mc.font;
+        Vec3 camPos = camera.position();
+
+        PoseStack poseStack = new PoseStack();
+
+        // translate to just above the entity
+        poseStack.translate(
+                (float) (entity.getX() - camPos.x),
+                (float) (y - camPos.y),
+                (float) (entity.getZ() - camPos.z));
+
+        // face the player
+        poseStack.rotate(camera.rotation());
+        poseStack.rotate(Axis.YP.rotationDegrees(180f));
         poseStack.scale(-0.025F, -0.025F, 0.025F);
 
-        Font.DisplayMode displayMode = Font.DisplayMode.SEE_THROUGH;
-        String damage = String.valueOf(Math.round(DamageHandler.lastHealthForOtherEntities.get(entityId)));
+        String current = String.valueOf(Math.round(health));
         String maxHealth = String.valueOf((int) Math.ceil(entity.getMaxHealth()));
+        String text = current + " / " + maxHealth;
 
-        String text = damage + " / " + maxHealth;
+        float textWidth = font.width(text);
+        float textHeight = font.lineHeight;
 
-        // handle color
-        int color = new Color(255, 255, 255).getRGB();
-
-        int textWidth = fontRenderer.width(text);
-        int textHeight = fontRenderer.lineHeight;
-
-        // render the text
-        fontRenderer.drawInBatch(text, -textWidth/2f, -textHeight/2f, color, false, poseStack.last().pose(), bufferSource, displayMode, 0, 15728880);
-
-        poseStack.popPose();
+        collector.submitText(
+                poseStack,
+                -textWidth / 2f,
+                -textHeight / 2f,
+                Component.literal(text).getVisualOrderText(),
+                false,
+                Font.DisplayMode.SEE_THROUGH,
+                FULL_BRIGHT,
+                0xFFFFFFFF,
+                0,
+                0
+        );
     }
 
 }

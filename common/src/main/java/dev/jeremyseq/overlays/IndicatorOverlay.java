@@ -2,22 +2,20 @@ package dev.jeremyseq.overlays;
 
 import dev.jeremyseq.DamageIndicators;
 import dev.jeremyseq.config.DamageIndicatorsConfig;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
 
-import java.awt.*;
+import java.awt.Color;
 
 public class IndicatorOverlay {
-    private static final ResourceLocation BLOOD_OVERLAY = ResourceLocation.fromNamespaceAndPath(DamageIndicators.MOD_ID,
-            "textures/overlays/blood_overlay.png");
+
+    private static final Identifier BLOOD_OVERLAY = Identifier.fromNamespaceAndPath(DamageIndicators.MOD_ID, "textures/overlays/blood_overlay.png");
+
+    private static final int SUBPIXEL = 8;
 
     public static Vec3 damageSource = null;
 
@@ -52,134 +50,116 @@ public class IndicatorOverlay {
         IndicatorOverlay.wasCrit = wasCrit;
     }
 
-    public static void render(GuiGraphics poseStack, float partialTick, int width, int height) {
-        if (!Minecraft.getInstance().options.hideGui && !Minecraft.getInstance().options.getCameraType().isMirrored()) {
+    public static void render(GuiGraphicsExtractor graphics, float deltaTicks, int width, int height) {
+        Minecraft mc = Minecraft.getInstance();
 
-            int x = width / 2;
-            int y = height / 2;
+        // VERIFY: Options#hideGui was replaced by Hud#isHidden in 26.2. This may also be redundant,
+        // since HUD elements are normally not drawn while the HUD is hidden.
+        if (mc.gui.hud.isHidden() || mc.options.getCameraType().isMirrored()) {
+            return;
+        }
 
-            float deltaFrameTime = Minecraft.getInstance().getTimer().getGameTimeDeltaTicks();
+        int x = width / 2;
+        int y = height / 2;
 
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
+        // hit marker
+        if (showHitmarker) {
+            hitmarkerCounter += deltaTicks;
 
-            if (showHitmarker) {
-                hitmarkerCounter += deltaFrameTime;
+            if (hitmarkerCounter >= DamageIndicatorsConfig.INSTANCE.hitmarkerDuration) {
+                showHitmarker = false;
+            } else if (DamageIndicatorsConfig.INSTANCE.enableHitmarker) {
+                float progress = hitmarkerCounter / DamageIndicatorsConfig.INSTANCE.hitmarkerDuration;
+                float alpha = 1f - (progress * progress); // quadratic ease out
 
-                if (hitmarkerCounter >= DamageIndicatorsConfig.INSTANCE.hitmarkerDuration) {
-                    showHitmarker = false;
+                Color baseColor;
+                if (wasKill) {
+                    baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerKillColor();
+                } else if (wasCrit) {
+                    baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerCritColor();
                 } else {
-                    if (DamageIndicatorsConfig.INSTANCE.enableHitmarker) {
-                        float progress = hitmarkerCounter / DamageIndicatorsConfig.INSTANCE.hitmarkerDuration;
-                        float alpha = 1f - (progress * progress); // quadratic ease out
-                        int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255f)));
-
-                        Color baseColor;
-                        if (wasKill) {
-                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerKillColor();
-                        } else if (wasCrit) {
-                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerCritColor();
-                        } else {
-                            baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerColor();
-                        }
-                        Color drawColor = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
-
-                        poseStack.flush();
-                        drawX(poseStack, x, y,
-                                DamageIndicatorsConfig.INSTANCE.hitmarkerSize,
-                                DamageIndicatorsConfig.INSTANCE.hitmarkerThickness,
-                                DamageIndicatorsConfig.INSTANCE.hitmarkerGap,
-                                drawColor
-                        );
-                        poseStack.flush();
-                    }
+                    baseColor = DamageIndicatorsConfig.INSTANCE.getHitmarkerColor();
                 }
+
+                drawX(graphics, x, y,
+                        DamageIndicatorsConfig.INSTANCE.hitmarkerSize,
+                        DamageIndicatorsConfig.INSTANCE.hitmarkerThickness,
+                        DamageIndicatorsConfig.INSTANCE.hitmarkerGap,
+                        withAlpha(baseColor, alpha)
+                );
+            }
+        }
+
+        // blood overlay
+        if (showBlood && DamageIndicatorsConfig.INSTANCE.enableBloodOverlay) {
+            int tint = new Color(1f, 1f, 1f, Math.clamp(bloodAlpha, 0f, 1f)).getRGB();
+
+            bloodAlpha -= BLOOD_FADE_SPEED * deltaTicks;
+            if (bloodAlpha <= 0f) {
+                showBlood = false;
+                bloodAlpha = 0f;
             }
 
-            // blood overlay
-            if (showBlood && DamageIndicatorsConfig.INSTANCE.enableBloodOverlay) {
-                RenderSystem.setShader(GameRenderer::getPositionTexShader);
-                RenderSystem.setShaderTexture(0, BLOOD_OVERLAY);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, BLOOD_OVERLAY, 0, 0, 0f, 0f, width, height, width, height, tint);
+        }
 
-                // Set color with alpha fading over time
-                RenderSystem.setShaderColor(1f, 1f, 1f, bloodAlpha);
-                bloodAlpha -= BLOOD_FADE_SPEED * deltaFrameTime;
+        // directional indicator
+        if (showDirectional && DamageIndicatorsConfig.INSTANCE.enableDirectionalIndicator) {
+            counter += deltaTicks;
 
-                if (bloodAlpha <= 0f) {
-                    showBlood = false;
-                    bloodAlpha = 0f;
-                }
-
-                poseStack.blit(BLOOD_OVERLAY, 0, 0, width, height, 0, 0, width, height, width, height);
-
-                RenderSystem.setShaderColor(1, 1, 1, 1);
+            if (counter >= DamageIndicatorsConfig.INSTANCE.indicateTime) {
+                showDirectional = false;
             }
 
-            // directional indicator
-            if (showDirectional && DamageIndicatorsConfig.INSTANCE.enableDirectionalIndicator) {
+            if (mc.player == null || damageSource == null) {
+                return;
+            }
 
-                counter += deltaFrameTime;
+            Color color = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor();
+            float a = color.getAlpha() / 255f;
 
-                if (counter >= DamageIndicatorsConfig.INSTANCE.indicateTime) {
-                    showDirectional = false;
-                }
+            // fade out
+            if (DamageIndicatorsConfig.INSTANCE.enableFadeOut) {
+                a = a * (DamageIndicatorsConfig.INSTANCE.indicateTime - counter) / DamageIndicatorsConfig.INSTANCE.indicateTime;
+            }
 
-                RenderSystem.setShader(GameRenderer::getPositionTexShader);
-                float r = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getRed() / 255f;
-                float g = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getGreen() / 255f;
-                float b = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getBlue() / 255f;
-                float a = DamageIndicatorsConfig.INSTANCE.getDirectionalIndicatorColor().getAlpha() / 255f;
+            int tint = withAlpha(color, a).getRGB();
 
-                // fade out
-                if (DamageIndicatorsConfig.INSTANCE.enableFadeOut) {
-                    a = a * (DamageIndicatorsConfig.INSTANCE.indicateTime - counter) / DamageIndicatorsConfig.INSTANCE.indicateTime;
-                }
+            double finalAngle = calculateFinalAngle(mc.player.getForward(),
+                    mc.player.position(), mc.player.position().add(damageSource.subtract(mc.player.position())));
 
-                RenderSystem.setShaderColor(r, g, b, a);
+            // Convert the angle to radians
+            float radians = (float) Math.toRadians(finalAngle);
+            float radians2 = (float) Math.toRadians(finalAngle - 90);
 
-                assert Minecraft.getInstance().player != null;
-                double finalAngle = calculateFinalAngle(Minecraft.getInstance().player.getForward(),
-                        Minecraft.getInstance().player.position(), Minecraft.getInstance().player.position().add(damageSource.subtract(Minecraft.getInstance().player.position())));
+            int textureWidth = 100;
+            int distanceFromCenter = DamageIndicatorsConfig.INSTANCE.directionalIndicatorDistance;
 
-                // Convert the angle to radians
-                float radians = (float) Math.toRadians(finalAngle);
-                float radians2 = (float) Math.toRadians(finalAngle - 90);
+            // Position on a circle around the crosshair
+            float indicatorX = x + (float) (distanceFromCenter * Math.cos(radians2));
+            float indicatorY = y + (float) (distanceFromCenter * Math.sin(radians2));
 
-                int textureWidth = 100;
+            // DirectionalIndicatorImages#get must now return an Identifier (see notes)
+            Identifier texture = DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture);
 
-                int distanceFromCenter = DamageIndicatorsConfig.INSTANCE.directionalIndicatorDistance;
+            if (texture != null) {
+                // Rotate around the indicator's center. This replaces the old
+                // translate(+i) / mulPose / translate(-i) / blit / inverse-rotate dance:
+                // push, move origin to the indicator, rotate, draw centered on the origin, pop.
+                graphics.pose().pushMatrix();
+                graphics.pose().translate(indicatorX, indicatorY);
+                graphics.pose().rotate(radians);
 
-                // Calculate the position based on distance from center
-                float indicatorX = x + (float) (distanceFromCenter * Math.cos(radians2));
-                float indicatorY = y + (float) (distanceFromCenter * Math.sin(radians2));
+                graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
+                        -textureWidth / 2, -textureWidth / 2,
+                        0f, 0f, textureWidth, textureWidth, textureWidth, textureWidth, tint);
 
-                // Apply translation to move the center of the image to the origin
-                poseStack.pose().translate(indicatorX, indicatorY, 0);
-
-                Quaternionf quaternion = new Quaternionf(0, 0, Math.sin(radians / 2), Math.cos(radians / 2));
-
-                // Apply rotation around the origin
-                poseStack.pose().mulPose(quaternion);
-
-                // Apply translation to move the image back to its original position
-                poseStack.pose().translate(-indicatorX, -indicatorY, 0);
-
-                // Draw the radar image
-                if (DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture) != null) {
-                    poseStack.blit(DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture), (int) (indicatorX - textureWidth / 2f), (int) (indicatorY - textureWidth / 2f), 0, 0, textureWidth, textureWidth, textureWidth, textureWidth);
-                } else {
-                    DamageIndicators.LOGGER.error("Invalid directional_indicator.texture: {}", DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture);
-                }
-
-                // Restore the original transformation matrix
-                poseStack.pose().translate(indicatorX, indicatorY, 0);
-                poseStack.pose().mulPose(quaternion.invert());
-                poseStack.pose().translate(-indicatorX, -indicatorY, 0);
-
-                RenderSystem.setShaderColor(1, 1, 1, 1);
+                graphics.pose().popMatrix();
             } else {
-                counter = 0;
+                DamageIndicators.LOGGER.error("Invalid directional_indicator.texture: {}", DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture);
             }
+        } else {
+            counter = 0;
         }
     }
 
@@ -195,47 +175,36 @@ public class IndicatorOverlay {
         return -finalAngle;
     }
 
-    private static void drawX(GuiGraphics guiGraphics, int centerX, int centerY, int size, float thickness, float gap, Color color) {
-        drawRotatedBar(guiGraphics, centerX, centerY, size, thickness, gap, 45f, color);
-        drawRotatedBar(guiGraphics, centerX, centerY, size, thickness, gap, -45f, color);
+    private static void drawX(GuiGraphicsExtractor graphics, int centerX, int centerY, int size, float thickness, float gap, Color color) {
+        drawRotatedBar(graphics, centerX, centerY, size, thickness, gap, 45f, color);
+        drawRotatedBar(graphics, centerX, centerY, size, thickness, gap, -45f, color);
     }
 
-    private static void drawRotatedBar(GuiGraphics guiGraphics, int centerX, int centerY, int halfLength, float thickness, float gap, float angleDegrees, Color color) {
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(centerX, centerY, 0);
-        guiGraphics.pose().mulPose(new Quaternionf().rotateZ((float) Math.toRadians(angleDegrees)));
+    private static void drawRotatedBar(GuiGraphicsExtractor graphics, int centerX, int centerY, int halfLength, float thickness, float gap, float angleDegrees, Color color) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, centerY);
+        graphics.pose().rotate((float) Math.toRadians(angleDegrees));
 
         float halfThickness = thickness / 2f;
 
-        fillFloat(guiGraphics, gap, -halfThickness, halfLength, halfThickness, color);
-        fillFloat(guiGraphics, -halfLength, -halfThickness, -gap, halfThickness, color);
+        fillFloat(graphics, gap, -halfThickness, halfLength, halfThickness, color);
+        fillFloat(graphics, -halfLength, -halfThickness, -gap, halfThickness, color);
 
-        guiGraphics.pose().popPose();
+        graphics.pose().popMatrix();
     }
 
-    private static void fillFloat(GuiGraphics guiGraphics, float x1, float y1, float x2, float y2, Color color) {
-        if (x1 > x2) {
-            float tmp = x1; x1 = x2; x2 = tmp;
-        }
-        if (y1 > y2) {
-            float tmp = y1; y1 = y2; y2 = tmp;
-        }
+    /**
+     * Float-precision rectangle: fill() takes ints, so draw at larger size, then scale down.
+     */
+    private static void fillFloat(GuiGraphicsExtractor graphics, float x1, float y1, float x2, float y2, Color color) {
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(1f / SUBPIXEL, 1f / SUBPIXEL);
+        graphics.fill(Math.round(x1 * SUBPIXEL), Math.round(y1 * SUBPIXEL), Math.round(x2 * SUBPIXEL), Math.round(y2 * SUBPIXEL), color.getRGB());
+        graphics.pose().popMatrix();
+    }
 
-        Matrix4f matrix = guiGraphics.pose().last().pose();
-        float a = color.getAlpha() / 255f;
-        float r = color.getRed() / 255f;
-        float g = color.getGreen() / 255f;
-        float b = color.getBlue() / 255f;
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        buffer.addVertex(matrix, x1, y2, 0).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x2, y2, 0).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x2, y1, 0).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x1, y1, 0).setColor(r, g, b, a);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+    /** Same RGB as {@code c}, with the given alpha (0..1). */
+    private static Color withAlpha(Color c, float alpha) {
+        return new Color(c.getRed(), c.getGreen(), c.getBlue(), Math.round(Math.clamp(alpha, 0f, 1f) * 255f));
     }
 }

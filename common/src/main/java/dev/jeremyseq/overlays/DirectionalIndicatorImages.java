@@ -2,7 +2,7 @@ package dev.jeremyseq.overlays;
 
 import dev.jeremyseq.DamageIndicators;
 import com.mojang.blaze3d.platform.NativeImage;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 
@@ -15,17 +15,17 @@ public class DirectionalIndicatorImages {
 
     private static final String FOLDER = "textures/directional_indicators";
 
-    private static Map<String, ResourceLocation> IMAGES = new HashMap<>();
+    private static Map<String, Identifier> IMAGES = new HashMap<>();
 
     public static void reload(ResourceManager resourceManager) {
-        Map<String, ResourceLocation> newMap = new HashMap<>();
+        Map<String, Identifier> newMap = new HashMap<>();
 
-        Map<ResourceLocation, ?> found = resourceManager.listResources(
+        Map<Identifier, ?> found = resourceManager.listResources(
                 FOLDER,
                 loc -> loc.getPath().endsWith(".png")
         );
 
-        for (ResourceLocation loc : found.keySet()) {
+        for (Identifier loc : found.keySet()) {
             String path = loc.getPath();
             String fileName = path.substring(path.lastIndexOf('/') + 1);
             String key = fileName.substring(0, fileName.length() - ".png".length());
@@ -46,11 +46,11 @@ public class DirectionalIndicatorImages {
         IMAGES = newMap;
     }
 
-    public static ResourceLocation get(String name) {
+    public static Identifier get(String name) {
         return IMAGES.get(name);
     }
 
-    public static Map<String, ResourceLocation> getAll() {
+    public static Map<String, Identifier> getAll() {
         return IMAGES;
     }
 }
