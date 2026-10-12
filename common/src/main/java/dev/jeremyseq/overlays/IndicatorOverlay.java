@@ -53,8 +53,6 @@ public class IndicatorOverlay {
     public static void render(GuiGraphicsExtractor graphics, float deltaTicks, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
 
-        // VERIFY: Options#hideGui was replaced by Hud#isHidden in 26.2. This may also be redundant,
-        // since HUD elements are normally not drawn while the HUD is hidden.
         if (mc.gui.hud.isHidden() || mc.options.getCameraType().isMirrored()) {
             return;
         }
@@ -128,24 +126,20 @@ public class IndicatorOverlay {
             double finalAngle = calculateFinalAngle(mc.player.getForward(),
                     mc.player.position(), mc.player.position().add(damageSource.subtract(mc.player.position())));
 
-            // Convert the angle to radians
+            // convert the angle to radians
             float radians = (float) Math.toRadians(finalAngle);
             float radians2 = (float) Math.toRadians(finalAngle - 90);
 
             int textureWidth = 100;
             int distanceFromCenter = DamageIndicatorsConfig.INSTANCE.directionalIndicatorDistance;
 
-            // Position on a circle around the crosshair
+            // calculate the position based on distance from center
             float indicatorX = x + (float) (distanceFromCenter * Math.cos(radians2));
             float indicatorY = y + (float) (distanceFromCenter * Math.sin(radians2));
 
-            // DirectionalIndicatorImages#get must now return an Identifier (see notes)
             Identifier texture = DirectionalIndicatorImages.get(DamageIndicatorsConfig.INSTANCE.directionalIndicatorTexture);
 
             if (texture != null) {
-                // Rotate around the indicator's center. This replaces the old
-                // translate(+i) / mulPose / translate(-i) / blit / inverse-rotate dance:
-                // push, move origin to the indicator, rotate, draw centered on the origin, pop.
                 graphics.pose().pushMatrix();
                 graphics.pose().translate(indicatorX, indicatorY);
                 graphics.pose().rotate(radians);
