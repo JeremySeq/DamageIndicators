@@ -7,5 +7,6 @@ public final class DamageIndicatorsClient implements ClientModInitializer {
     public void onInitializeClient() {
         FabricClientEvents.register();
         FabricClientTickHandler.register();
+        dev.jeremyseq.DamageIndicators.init();
     }
 }
