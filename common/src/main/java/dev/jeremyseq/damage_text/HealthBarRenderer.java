@@ -10,6 +10,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
@@ -55,6 +56,7 @@ public class HealthBarRenderer {
 
     private static void renderHealthBar(SubmitNodeCollector collector, int entityId, Camera camera) {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.gui.hud.isHidden()) return;
         if (mc.level == null || mc.player == null) {
             return;
         }
@@ -83,6 +85,10 @@ public class HealthBarRenderer {
                 (float) (y - camPos.y),
                 (float) (entity.getZ() - camPos.z));
 
+        if (isNametagShowing(Minecraft.getInstance(), entity))  {
+            poseStack.translate(0, .3, 0);
+        }
+
         // face the player
         poseStack.rotate(camera.rotation());
         poseStack.rotate(Axis.YP.rotationDegrees(180f));
@@ -107,6 +113,20 @@ public class HealthBarRenderer {
                 0,
                 0
         );
+    }
+
+    private static boolean isNametagShowing(Minecraft mc, LivingEntity entity) {
+        if (mc.gui.hud.isHidden()) return false;
+        if (entity == mc.getCameraEntity()) return false;
+        assert mc.player != null;
+        if (entity.isInvisibleTo(mc.player)) return false;
+        if (entity.isVehicle()) return false;
+
+        double maxDist = entity.isDiscrete() ? 32.0 : 64.0;
+        if (mc.player.distanceToSqr(entity) >= maxDist * maxDist) return false;
+
+        if (entity instanceof Player) return true;
+        return entity.hasCustomName() && (entity.isCustomNameVisible() || entity == mc.crosshairPickEntity);
     }
 
 }
