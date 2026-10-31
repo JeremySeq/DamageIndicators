@@ -8,6 +8,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
@@ -53,6 +54,7 @@ public class HealthBarRenderer {
 
     private static void renderHealthBar(PoseStack poseStack, int entityId, MultiBufferSource.BufferSource bufferSource) {
         assert Minecraft.getInstance().level != null;
+        if (Minecraft.getInstance().options.hideGui) return;
         if (!DamageHandler.lastHealthForOtherEntities.containsKey(entityId)) {
             return;
         }
@@ -80,6 +82,10 @@ public class HealthBarRenderer {
         // Translate to the position of the damage text
         poseStack.translate(entity.getX() - renderManager.camera.getPosition().x, y - renderManager.camera.getPosition().y, entity.getZ() - renderManager.camera.getPosition().z);
 
+        if (isNametagShowing(Minecraft.getInstance(), entity))  {
+            poseStack.translate(0, .3, 0);
+        }
+
         // Apply transformations for better readability
         poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
         poseStack.scale(-0.025F, -0.025F, 0.025F);
@@ -100,6 +106,20 @@ public class HealthBarRenderer {
         fontRenderer.drawInBatch(text, -textWidth/2f, -textHeight/2f, color, false, poseStack.last().pose(), bufferSource, displayMode, 0, 15728880);
 
         poseStack.popPose();
+    }
+
+    private static boolean isNametagShowing(Minecraft mc, LivingEntity entity) {
+        if (mc.options.hideGui) return false;
+        if (entity == mc.getCameraEntity()) return false;
+        assert mc.player != null;
+        if (entity.isInvisibleTo(mc.player)) return false;
+        if (entity.isVehicle()) return false;
+
+        double maxDist = entity.isDiscrete() ? 32.0 : 64.0;
+        if (mc.player.distanceToSqr(entity) >= maxDist * maxDist) return false;
+
+        if (entity instanceof Player) return true;
+        return entity.hasCustomName() && (entity.isCustomNameVisible() || entity == mc.crosshairPickEntity);
     }
 
 }
