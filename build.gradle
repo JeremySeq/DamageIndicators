@@ -39,7 +39,6 @@ subprojects {
     dependencies {
         minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
         mappings loom.officialMojangMappings()
-        implementation 'com.electronwill.night-config:toml:3.6.0'
     }
 
     java {
